@@ -1,0 +1,77 @@
+#!/usr/bin/php
+<?php
+
+$threads = [];
+$currentThread = '';
+while (($line = fgets(STDIN)) !== false) {
+  if ($line === "Call graph:\n") {
+    while (($line = fgets(STDIN)) !== false) {
+      if ($line === "\n")
+        break;
+
+      // Find the beginning of each thread's stackframes.
+      if (preg_match('/^\s{4}(\d+) (Thread_\d+((: |   )(.*))?)\n$/', $line, $matches))
+        $currentThread = $matches[2];
+      else
+        $threads[$currentThread][] = substr(rtrim($line), 6);
+    }
+    break;
+  }
+}
+
+print 'Sampled ' . count($threads) . " threads\n";
+
+// Cull system/thread-startup noise.
+$fluff = [
+  'start_wqthread',
+  '_pthread_wqthread',
+  '_dispatch_worker_thread2',
+  '_dispatch_root_queue_drain',
+  '_dispatch_queue_override_invoke',
+  '_dispatch_client_callout',
+  '_dispatch_call_block_and_release',
+  '_dispatch_async_redirect_invoke',
+  '_dispatch_continuation_pop',
+  '_dispatch_lane_barrier_sync_invoke_and_complete',
+  '_dispatch_sema4_wait',
+  'thread_start',
+  '_pthread_start',
+  '_pthread_body',
+  '__psynch_cvwait',
+  'glcDebugListener',
+  'mach_msg_trap',
+  'CFRunLoopRunSpecific',
+  '__CFRunLoopRun',
+];
+foreach ($threads as &$thread)
+  foreach ($thread as $key => $stackframe)
+    foreach ($fluff as $func)
+      if (preg_match("/^[\s!]*\d+ $func/", $stackframe))
+        unset($thread[$key]);
+
+// Group threads by functions in their callstack (ignoring thread name, library, offset, and address).
+$uniqueThreads = [];
+foreach ($threads as $threadName => $thread) {
+  $functions = [];
+  foreach ($thread as $key => $stackframe)
+    if (preg_match("/^[\s!]*\d+ (.*)  \(in .*\) \+ \d+/", $stackframe, $matches))
+      $functions[] = $matches[1];
+  $threadHash = implode(';', $functions);
+  if (isset($uniqueThreads[$threadHash]))
+    ++$uniqueThreads[$threadHash][0];
+  else
+    $uniqueThreads[$threadHash] = [
+      1,
+      $threadName,
+      $thread,
+    ];
+}
+usort($uniqueThreads, function ($a, $b) { return -($a[0] <=> $b[0]); });
+
+print "\n";
+print "Stack traces with similar threads grouped:\n";
+foreach ($uniqueThreads as $uniqueThread) {
+  printf("%5d x \033[36m%s\033[0m\n", $uniqueThread[0], $uniqueThread[1]);
+  foreach ($uniqueThread[2] as $stackframe)
+    print "            $stackframe\n";
+}

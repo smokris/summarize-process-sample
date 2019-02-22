@@ -10,7 +10,7 @@ while (($line = fgets(STDIN)) !== false) {
         break;
 
       // Find the beginning of each thread's stackframes.
-      if (preg_match('/^\s{4}(\d+) (Thread_\d+((: |   )(.*))?)\n$/', $line, $matches))
+      if (preg_match('/^\s{4}(\d+) (Thread_(\d+|<multiple>)((: |   )(.*))?)\n$/', $line, $matches))
         $currentThread = $matches[2];
       else
         $threads[$currentThread][] = substr(rtrim($line), 6);

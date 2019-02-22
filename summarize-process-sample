@@ -46,7 +46,7 @@ $fluff = [
 foreach ($threads as &$thread)
   foreach ($thread as $key => $stackframe)
     foreach ($fluff as $func)
-      if (preg_match("/^[\s!]*\d+ $func/", $stackframe))
+      if (preg_match("/^[\s!|:+]*\d+ $func/", $stackframe))
         unset($thread[$key]);
 
 // Group threads by functions in their callstack (ignoring thread name, library, offset, and address).

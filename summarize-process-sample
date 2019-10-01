@@ -91,6 +91,11 @@ foreach ($threads as &$thread)
       if (preg_match("/^[\s!|:+]*\d+ $func/", $stackframe))
         unset($thread[$key]);
 
+// Ignore threads without any remaining frames.
+foreach ($threads as $key => $thread)
+  if (count($thread) == 0)
+    unset($threads[$key]);  
+
 // Group threads by functions in their callstack (ignoring thread name, library, offset, and address).
 $uniqueThreads = [];
 foreach ($threads as $threadName => $thread) {

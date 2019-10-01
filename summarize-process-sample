@@ -1,9 +1,13 @@
 #!/usr/bin/php
 <?php
 
+$warnings = [];
 $threads = [];
 $currentThread = '';
 while (($line = fgets(STDIN)) !== false) {
+  if (strstr($line, 'Dispatch Thread Soft Limit Reached'))
+    $warnings[] = $line;
+
   if ($line === "Call graph:\n") {
     while (($line = fgets(STDIN)) !== false) {
       if ($line === "\n")
@@ -19,7 +23,10 @@ while (($line = fgets(STDIN)) !== false) {
   }
 }
 
-print 'Sampled ' . count($threads) . " threads\n";
+print 'Sampled ' . count($threads) . " threads.\n";
+
+if (count($warnings))
+  print "\nWarnings:\n\t" . implode("\t", $warnings);
 
 // Cull system/thread-startup noise.
 $fluff = [

@@ -5,21 +5,36 @@ $warnings = [];
 $threads = [];
 $currentThread = '';
 while (($line = fgets(STDIN)) !== false) {
+  $line = rtrim($line);
+
   if (strstr($line, 'Dispatch Thread Soft Limit Reached'))
     $warnings[] = $line;
 
-  if ($line === "Call graph:\n") {
-    while (($line = fgets(STDIN)) !== false) {
-      if ($line === "\n")
-        break;
+  // Find the beginning of each thread's stackframes.
+  
+  // Output of `sample`:
+  //     2429 Thread_581686   DispatchQueue_1: com.apple.main-thread  (serial)
+  //     2429 Thread_582207
+  //     2429 Thread_582387: QQmlThread
+  if (preg_match('/^\s{4}(\d+) (Thread_(\d+|<multiple>)((: |   )(.*))?)$/', $line, $matches))
+    $currentThread = $matches[2];
 
-      // Find the beginning of each thread's stackframes.
-      if (preg_match('/^\s{4}(\d+) (Thread_(\d+|<multiple>)((: |   )(.*))?)\n$/', $line, $matches))
-        $currentThread = $matches[2];
-      else
-        $threads[$currentThread][] = substr(rtrim($line), 6);
-    }
+  // Output of `spindump`:
+  // Thread 0x262d17         DispatchQueue 1         1000 samples (1-1000)   priority 18-31 (base 31)                        cpu time 9.808s
+  // Thread 0x262d18         DispatchQueue 2         1000 samples (1-1000)   priority 61 (base 61)   cpu time 0.008s
+  // Thread 0x262d32         1000 samples (1-1000)   priority 31 (base 31)
+  else if (preg_match('/^  (Thread .*)$/', $line, $matches))
+    $currentThread = $matches[1];
+
+  // Have we reached the end of the thread stacks?
+  else if (preg_match('/^(Total number in stack.*|  Binary Images:)$/', $line))
     break;
+
+  else if (!empty($currentThread)) {
+    if (substr($line, 0, 6) === '    + ')
+      $threads[$currentThread][] = substr($line, 6);
+    else
+      $threads[$currentThread][] = $line;
   }
 }
 
@@ -88,20 +103,20 @@ $fluff = [
 foreach ($threads as &$thread)
   foreach ($thread as $key => $stackframe)
     foreach ($fluff as $func)
-      if (preg_match("/^[\s!|:+]*\d+ $func/", $stackframe))
+      if (empty($stackframe) || preg_match("/^[\s!|:+*]*\d+ {1,2}$func/", $stackframe))
         unset($thread[$key]);
 
 // Ignore threads without any remaining frames.
 foreach ($threads as $key => $thread)
   if (count($thread) == 0)
-    unset($threads[$key]);  
+    unset($threads[$key]);
 
 // Group threads by functions in their callstack (ignoring thread name, library, offset, and address).
 $uniqueThreads = [];
 foreach ($threads as $threadName => $thread) {
   $functions = [];
   foreach ($thread as $key => $stackframe)
-    if (preg_match("/^[\s!]*\d+ (.*)  \(in .*\) \+ \d+/", $stackframe, $matches))
+    if (preg_match("/^[\s!*]*\d+ {1,2}(.*) ( \(in .*\) \+ \d+|\+ \d+ \(.*\) \[.*\])/", $stackframe, $matches))
       $functions[] = $matches[1];
   $threadHash = implode(';', $functions);
   if (isset($uniqueThreads[$threadHash]))

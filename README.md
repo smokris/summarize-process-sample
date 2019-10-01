@@ -1,5 +1,5 @@
 # summarize-process-sample
-Combines similar threads in a macOS process sample, and outputs a summary.  When debugging massively-multithreaded apps, this could help trim down a process sample into something that's readable.
+Combines similar threads in a macOS process sample or spindump, and outputs a summary.  When debugging massively-multithreaded apps, this could help trim down these reports into something readable.
 
 Usage:
 

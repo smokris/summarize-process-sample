@@ -78,6 +78,7 @@ $fluff = [
   '-\[NSApplication\(NSAppleEventHandling\) _handleCoreEvent:withReplyEvent:',
   '.*-\[NSApplication\(NSAppleEventHandling\) _handleAEOpenDocumentsForURLs',
   '-\[NSApplication\(NSAppleEventHandling\) _openURLs:withCompletionHandler:',
+  '-\[NSApplication _nextEventMatchingEventMask',
   'withWindowOrderingObserverHeuristic',
   'start',
   '_DPSNextEvent',
@@ -99,11 +100,45 @@ $fluff = [
   'QGuiApplicationPrivate',
   'QCoreApplication::notifyInternal2',
   'QApplicationPrivate',
+  'QWidgetPrivate',
+  'WaitOnCondition',
+  '\?\?\? \(MediaToolbox',
+  '\?\?\? \(VideoToolbox',
+  '\?\?\? \(kernel',
+  'QEventDispatcherUNIX::processEvents',
+  'QEventDispatcherUNIXPrivate::doSelect',
+  'RunCurrentEventLoopInMode',
+  '__CFRunLoopDoSources0',
+  '__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__',
+  'hndl_mach_',
+  'ipc_kmsg_',
+  'ipc_right_',
+  'ipc_mqueue_',
+  'mach_call_munger',
+  'mach_msg_overwrite_trap',
+  '_kernelrpc_mach_port_deallocate_trap',
+  'mach_kauth_cred_uthread_update',
+  'mach_port_deallocate',
+  'current_proc',
+  'malloc_zone_malloc',
+  'szone_malloc_should_clear',
+  'tiny_malloc_from_free_list',
+  '\+\[_NS',
+  '_NS',
+  '_dispatch_mgr_thread',
+  'kevent_qos',
+  'psynch_cvcontinue',
+  'CAPThread',
+  'XThread::RunHelper',
+  'MIDIProcess::RunMIDIInThread',
+  'XServerMachPort::ReceiveMessage',
+  'CFRunLoopWakeUp',
+  'GenericRunLoopThread::Entry',
 ];
 foreach ($threads as &$thread)
   foreach ($thread as $key => $stackframe)
     foreach ($fluff as $func)
-      if (empty($stackframe) || preg_match("/^[\s!|:+*]*\d+ {1,2}$func/", $stackframe))
+      if (empty($stackframe) || preg_match("/^[\s!|:+*]*\d+ {1,4}$func/", $stackframe))
         unset($thread[$key]);
 
 // Ignore threads without any remaining frames.
